@@ -1,0 +1,21 @@
+.navbar {
+    /*font-family: "Roboto Light", serif;*/
+    font-size: xx-large;
+    padding: 3px 10px;
+}
+
+.filter-controls {
+    padding-top: 10px;
+}
+
+#kernel-rep {
+    display: grid;
+    grid-template-columns: repeat(25, 0.5vh);
+    grid-template-rows: repeat(25, 0.5vh);
+    height: 0.5vh;
+}
+
+#main-canvas {
+    border: 1px solid gray;
+    margin: 3px 0;
+}
