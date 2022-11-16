@@ -1,6 +1,6 @@
 "use strict";
 
-const UNIFORM_MAX = 29;
+const UNIFORM_MAX = 25;
 
 const vertexShaderSource = `#version 300 es
 
@@ -36,10 +36,12 @@ const fragmentShaderSource = `#version 300 es
     uniform float u_kernel[${UNIFORM_MAX*UNIFORM_MAX}];
     uniform int u_kernel_size;
     uniform int choice_algo;
+    uniform int intensity;
     
     vec3 dither(vec3 col) {
         vec3 out_col;
         const int matrixWidth = 8;
+        /**/
         const int indexMatrix[64] =     int[](0,  32, 8,  40, 2,  34, 10, 42,
                                              48, 16, 56, 24, 50, 18, 58, 26,
                                              12, 44, 4,  36, 14, 46, 6,  38,
@@ -48,6 +50,7 @@ const fragmentShaderSource = `#version 300 es
                                              51, 19, 59, 27, 49, 17, 57, 25,
                                              15, 47, 7,  39, 13, 45, 5,  37,
                                              63, 31, 55, 23, 61, 29, 53, 21);
+        /**/
 
         vec2 indexCord = vec2(textureSize(u_image, 0)) * v_texCord;                                             
         int x = int(indexCord.x)%matrixWidth;
@@ -55,7 +58,12 @@ const fragmentShaderSource = `#version 300 es
         int index = x + y*matrixWidth;
         
         float threshold = float(indexMatrix[index])/float(matrixWidth*matrixWidth);
-
+        // float threshold = u_kernel[index];
+        
+        // out_col.r = round(col.r*float(intensity))/float(intensity);
+        // out_col.g = round(col.g*float(intensity))/float(intensity);
+        // out_col.b = round(col.b*float(intensity))/float(intensity);
+        
         out_col.r = col.r > threshold ? 1.0 : 0.0;
         out_col.g = col.g > threshold ? 1.0 : 0.0;
         out_col.b = col.b > threshold ? 1.0 : 0.0;
@@ -64,7 +72,7 @@ const fragmentShaderSource = `#version 300 es
     }
     
     vec3 convolution() {
-        vec2 onePixel = vec2(1) / vec2(textureSize(u_image, 0));
+        vec2 onePixel = vec2(intensity) / vec2(textureSize(u_image, 0));
         float kernelSum = 1.0;
         
         vec4 colorSum = vec4(0.0);      // Initially zero -- 0.0, 0.0, 0.0, 0.0
@@ -117,13 +125,25 @@ const fragmentShaderSource = `#version 300 es
     }
 `;
 
+let slider_values = {};
+
 let operation_t = 1;
-let k_size = UNIFORM_MAX;
-let sel_angle = 0;
-let filter_t = 2;
+let filter_t = 1;
+
 let kernel_data_loc;
 let kernel_size_loc;
 let choice_algo_loc;
+let intensity_loc;
+
+/**
+ * Updating image based on GUI
+ * */
+let operation_select;
+let k_size_slider;
+let intensity_slider;
+
+let angle_slider;
+let filter_select;
 
 const getWebGL = () => {
     let canvas = document.querySelector("#main-canvas");
@@ -146,29 +166,34 @@ $('document').ready(() => {
     kernel_data_loc = webgl.getUniformLocation(program, 'u_kernel[0]');
     kernel_size_loc = webgl.getUniformLocation(program, 'u_kernel_size');
     choice_algo_loc = webgl.getUniformLocation(program, 'choice_algo');
+    intensity_loc = webgl.getUniformLocation(program, 'intensity');
 
-    /**
-     * Updating image based on GUI
-     * */
-    const operation_select = $('#operation-select');
-    const k_size_slider = $('#kernel_size_inp');
-    const angle_slider = $('#angle_sel_inp');
-    const filter_select = $('#filter-select');
 
-    k_size_slider.val(k_size);
+    operation_select = $('#operation-select');
+    filter_select    = $('#filter-select');
+
+    k_size_slider    = $('#kernel_size_inp');
+    angle_slider     = $('#angle_sel_inp');
+    intensity_slider = $('#intensity_inp');
+
+    slider_values[angle_slider.attr('name')] = 0;
+    slider_values[k_size_slider.attr('name')] = 25;
+    slider_values[intensity_slider.attr('name')] = 10;
+
+    // Setting the defaults
     k_size_slider.attr('max', UNIFORM_MAX);
-    angle_slider.val(sel_angle);
     image_update();
 
-    k_size_slider.change(() => {
-        k_size = k_size_slider.val();
-        image_update();
-    });
-
-    angle_slider.change(() => {
-        sel_angle = angle_slider.val();
-        image_update();
-    });
+    for (let slider of [k_size_slider, angle_slider, intensity_slider]) {
+        let a_name = slider.attr('name');
+        $('#' + a_name + '_label').html(`${a_name}: ${slider_values[a_name]}`);
+        slider.val(slider_values[a_name]);
+        slider.change(() => {
+            let a_name = slider.attr('name');
+            slider_values[a_name] = parseInt(slider.val());
+            image_update();
+        })
+    }
 
     filter_select.change(() => {
         let option = filter_select.find(':selected');
@@ -196,10 +221,14 @@ $('document').ready(() => {
 function image_update() {
     /**
      * Take the filter type and slider value and update the kernel in shader */
+    let k_size = slider_values[k_size_slider.attr('name')];
+    let sel_angle = slider_values[angle_slider.attr('name')];
+    let intensity = slider_values[intensity_slider.attr('name')];
+
+    console.log('K size = ', k_size, ' angle = ', sel_angle);
+
     let array_size = k_size * k_size;
     let kernel_data = [];
-    $('#kernel_size_label').html(`Kernel Size: ${k_size} * ${k_size}`);
-    $('#angle_sel_label').html(`Angle: ${sel_angle} degree`);
 
     if (filter_t === 1) {
         for (let i = 0; i < k_size; i++) {
@@ -280,6 +309,7 @@ function image_update() {
     webgl.uniform1fv(kernel_data_loc, kernel_data);
     webgl.uniform1i(kernel_size_loc, k_size);
     webgl.uniform1i(choice_algo_loc, operation_t);
+    webgl.uniform1i(intensity_loc, intensity)
     webgl.drawArrays(webgl.TRIANGLES, 0, 6);
 }
 
