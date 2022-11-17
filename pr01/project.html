@@ -26,33 +26,41 @@
                     <div class="filter-controls">
                         <div class="row">
                             <div class="col">
-                                <div class="form-floating">
+                                <div class="form-floating" id="operation-select-group">
                                     <select class="form-select" aria-label="Filter Selection" id="operation-select">
+                                        <option value="0">None</option>
                                         <option value="1">Convolution Filters</option>
                                         <option value="2">Ordered Dithering</option>
                                     </select>
                                     <label for="operation-select">Select filter operation</label>
                                 </div>
-                                <div class="form-floating">
+                                <div class="form-floating" id="filter-select-group">
                                     <select class="form-select" aria-label="Filter Selection" id="filter-select">
                                         <option value="1">Basic Blur</option>
                                         <option value="2">Gaussian Blur</option>
-                                        <option value="4">Gaussian Blur - Directional</option>
+                                        <option value="3">Gaussian Blur - Directional</option>
+                                        <option value="4">Differential Blur - Directional</option>
                                     </select>
                                     <label for="filter-select">Type of filter</label>
                                 </div>
                                 <div class="row">
-                                    <div class="input-group mb-3 col">
-                                        <label for="kernel_size_inp" class="form-label" id="k_size_label">Kernel Size</label>
-                                        <input type="range" class="form-range" id="kernel_size_inp" min="5" max="25" step="2" name="k_size">
+                                    <div class="input-group mb-3 col" id="k_size_group">
+                                        <label for="k_size_inp" class="form-label" id="k_size_label">Kernel Size</label>
+                                        <input type="range" class="form-range" id="k_size_inp" min="5" max="25" step="2" name="k_size">
                                     </div>
-                                    <div class="input-group mb-3 col">
+                                    <div class="input-group mb-3 col" id="intensity_group">
                                         <label for="intensity_inp" class="form-label" id="intensity_label">Intensity: </label>
                                         <input type="range" class="form-range" id="intensity_inp" min="2" max="50" step="2" name="intensity">
                                     </div>
-                                    <div class="input-group mb-3 col">
-                                        <label for="angle_sel_inp" class="form-label" id="angle_label">Angle: </label>
-                                        <input type="range" class="form-range" id="angle_sel_inp" min="0" max="359" step="5" name="angle">
+                                </div>
+                                <div class="row">
+                                    <div class="input-group mb-3 col" id="angle_group">
+                                        <label for="angle_inp" class="form-label" id="angle_label">Angle: </label>
+                                        <input type="range" class="form-range" id="angle_inp" min="0" max="359" step="5" name="angle">
+                                    </div>
+                                    <div class="input-group mb-3 col" id="steep_group">
+                                        <label for="steep_inp" class="form-label" id="steep_label">Steep: </label>
+                                        <input type="range" class="form-range" id="steep_inp" min="0.1" max="10" step="0.1" name="steep">
                                     </div>
                                 </div>
                                 <div id="kernel-rep">

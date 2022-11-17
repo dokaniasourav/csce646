@@ -3,7 +3,16 @@ const UNIFORM_MAX = 25;
 
 let slider_values = {};
 
-let operation_t = 1;
+const CONVOLUTION_FILTER = 1;
+const DITHERING_FILTER = 2;
+
+const BASIC_BLUR = 1;
+const GAUSSIAN_BLUR = 2;
+const GAUSSIAN_BLUR_DIR = 3;
+const DIFFERENTIAL_BLUR = 4;
+
+
+let operation_t = CONVOLUTION_FILTER;
 let filter_t = 1;
 
 let kernel_data_loc;
@@ -14,12 +23,13 @@ let intensity_loc;
 /**
  * Updating image based on GUI
  * */
-let operation_select;
+
 let k_size_slider;
 let intensity_slider;
-
+let steep_slider;
 let angle_slider;
-let filter_select;
+
+let kernel_display_element;
 
 const getWebGL = () => {
     let canvas = document.querySelector("#main-canvas");
@@ -60,30 +70,46 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
     intensity_loc = webgl.getUniformLocation(program, 'intensity');
 
 
-    operation_select = $('#operation-select');
-    filter_select = $('#filter-select');
+    const operation_select = $('#operation-select');
+    const filter_select = $('#filter-select');
 
-    k_size_slider = $('#kernel_size_inp');
-    angle_slider = $('#angle_sel_inp');
+    const operation_select_group = $('#operation-select-group');
+    const filter_select_group = $('#filter-select-group');
+
+
+
+    /**
+     * Initialize the slider inputs **/
+    k_size_slider = $('#k_size_inp');
     intensity_slider = $('#intensity_inp');
+    angle_slider = $('#angle_inp');
+    steep_slider = $('#steep_inp');
+    kernel_display_element = $('#kernel-rep');
 
+    // Setting the defaults
     slider_values[angle_slider.attr('name')] = 0;
     slider_values[k_size_slider.attr('name')] = 25;
     slider_values[intensity_slider.attr('name')] = 10;
+    slider_values[steep_slider.attr('name')] = 1;
 
-    // Setting the defaults
     k_size_slider.attr('max', UNIFORM_MAX);
     image_update();
 
-    for (let slider of [k_size_slider, angle_slider, intensity_slider]) {
+    for (let slider of [k_size_slider, angle_slider, intensity_slider, steep_slider]) {
         let a_name = slider.attr('name');
-        $('#' + a_name + '_label').html(`${a_name}: ${slider_values[a_name]}`);
         slider.val(slider_values[a_name]);
+        let A_Name = a_name[0].toUpperCase() + a_name.substring(1);
+        $('#' + a_name + '_label').html(`${A_Name} is ${slider_values[a_name]}`);
         slider.change(() => {
             let a_name = slider.attr('name');
             slider_values[a_name] = parseInt(slider.val());
+            let A_Name = a_name[0].toUpperCase() + a_name.substring(1);
+            $('#' + a_name + '_label').html(`${A_Name} is ${slider_values[a_name]}`);
             image_update();
         })
+        $('#' + a_name + '_group').hide();
+        kernel_display_element.hide();
+        filter_select_group.hide();
     }
 
     filter_select.change(() => {
@@ -95,13 +121,29 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
     operation_select.change(() => {
         let option = operation_select.find(':selected');
         operation_t = parseInt(option.val());
+        console.log('Selected op = ', operation_t);
+        for (let slider of [k_size_slider, angle_slider, intensity_slider, steep_slider]) {
+            let a_name = slider.attr('name');
+            if (operation_t !== CONVOLUTION_FILTER) {
+                $('#' + a_name + '_group').hide(500);
+            } else {
+                $('#' + a_name + '_group').show(500);
+            }
+        }
+        if (operation_t !== CONVOLUTION_FILTER) {
+            kernel_display_element.hide(500);
+            filter_select_group.hide(500);
+        } else {
+            kernel_display_element.show(500);
+            filter_select_group.show(500);
+        }
         image_update();
     });
 
     /***
      * Making the image file */
     let image = new Image();
-    image.src = 'fox.jpg'
+    image.src = 'flower.jpg'
     image.crossOrigin = "Anonymous";
     image.alt = 'Sample image';
     image.onload = () => {
@@ -115,11 +157,12 @@ function image_update() {
     let k_size = slider_values[k_size_slider.attr('name')];
     let sel_angle = slider_values[angle_slider.attr('name')];
     let intensity = slider_values[intensity_slider.attr('name')];
+    let steepness = slider_values[steep_slider.attr('name')];
 
     let array_size = k_size * k_size;
     let kernel_data = [];
 
-    if (filter_t === 1) {
+    if (filter_t === BASIC_BLUR) {
         for (let i = 0; i < k_size; i++) {
             for (let j = 0; j < k_size; j++) {
                 kernel_data.push(1 / array_size);
@@ -132,12 +175,15 @@ function image_update() {
                 let x = i + 0.5 - k_size / 2.0;
                 let y = j + 0.5 - k_size / 2.0;
                 let out = 1.0;
-                if (filter_t === 2) {
-                    let f_xy = (x * x + y * y) / k_size;
+                if (filter_t === GAUSSIAN_BLUR) {
+                    let f_xy = (x * x + y * y) / (k_size * steepness);
                     out = Math.exp(-f_xy);
-                } else if (filter_t === 4) {
+                } else if (filter_t === GAUSSIAN_BLUR_DIR) {
                     let f_xy = Math.cos(radian_angle) * x + Math.sin(radian_angle) * y;
-                    out = Math.exp(-(f_xy * f_xy) / k_size);
+                    out = Math.exp(-(f_xy * f_xy) / (k_size * steepness));
+                } else if (filter_t === DIFFERENTIAL_BLUR) {
+                    let f_xy = Math.cos(radian_angle) * x + Math.sin(radian_angle) * y;
+                    out = (f_xy + k_size) / (k_size * steepness);
                 }
                 kernel_data.push(out);
             }
@@ -166,7 +212,6 @@ function image_update() {
 
     /**
      * Generating HTML Test */
-    const kernel_display_element = $('#kernel-rep');
     kernel_display_element.html('');
     kernel_display_element.css('grid-template-columns', 'repeat(' + k_size + ', 0.5vh)');
     kernel_display_element.css('grid-template-rows', 'repeat(' + k_size + ', 0.5vh)');
