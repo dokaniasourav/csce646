@@ -17,6 +17,10 @@ let filter_t = 1;
 
 let kernel_data_loc;
 let kernel_size_loc;
+
+let matrix_size_loc;
+let matrix_data_loc;
+
 let choice_algo_loc;
 let intensity_loc;
 
@@ -28,6 +32,7 @@ let k_size_slider;
 let intensity_slider;
 let steep_slider;
 let angle_slider;
+let m_size_slider;
 
 let kernel_display_element;
 
@@ -69,6 +74,10 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
     choice_algo_loc = webgl.getUniformLocation(program, 'choice_algo');
     intensity_loc = webgl.getUniformLocation(program, 'intensity');
 
+    matrix_size_loc = kernel_size_loc;
+    matrix_data_loc = kernel_data_loc;
+
+
 
     const operation_select = $('#operation-select');
     const filter_select = $('#filter-select');
@@ -76,7 +85,15 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
     const operation_select_group = $('#operation-select-group');
     const filter_select_group = $('#filter-select-group');
 
-
+    /***
+     * Making the image file */
+    let image = new Image();
+    image.src = 'assets/city.jpg'
+    image.crossOrigin = "Anonymous";
+    image.alt = 'Sample image';
+    image.onload = () => {
+        render_img(image, program);
+    };
 
     /**
      * Initialize the slider inputs **/
@@ -84,28 +101,29 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
     intensity_slider = $('#intensity_inp');
     angle_slider = $('#angle_inp');
     steep_slider = $('#steep_inp');
+    m_size_slider = $('#matrix_inp');
+
     kernel_display_element = $('#kernel-rep');
 
     // Setting the defaults
-    slider_values[angle_slider.attr('name')] = 90;
-    slider_values[k_size_slider.attr('name')] = 10;
-    slider_values[intensity_slider.attr('name')] = 2;
-    slider_values[steep_slider.attr('name')] = 1;
+    slider_values[angle_slider.attr('name')] = 180;
+    slider_values[k_size_slider.attr('name')] = 7;
+    slider_values[intensity_slider.attr('name')] = 10;
+    slider_values[steep_slider.attr('name')] = 5;
+    slider_values[m_size_slider.attr('name')] = 4;
 
     k_size_slider.attr('max', UNIFORM_MAX);
-    image_update();
-
-    for (let slider of [k_size_slider, angle_slider, intensity_slider, steep_slider]) {
+    image_update(image);
+    let slider_list_all = [k_size_slider, angle_slider, intensity_slider, steep_slider, m_size_slider];
+    for (let slider of slider_list_all) {
         let a_name = slider.attr('name');
         slider.val(slider_values[a_name]);
-        let A_Name = a_name[0].toUpperCase() + a_name.substring(1);
-        $('#' + a_name + '_label').html(`${A_Name} is ${slider_values[a_name]}`);
+        $('#' + a_name + '_label').html(` ${slider_values[a_name]}`);
         slider.change(() => {
             let a_name = slider.attr('name');
             slider_values[a_name] = parseInt(slider.val());
-            let A_Name = a_name[0].toUpperCase() + a_name.substring(1);
-            $('#' + a_name + '_label').html(`${A_Name} is ${slider_values[a_name]}`);
-            image_update();
+            $('#' + a_name + '_label').html(` ${slider_values[a_name]}`);
+            image_update(image);
         })
         $('#' + a_name + '_group').hide();
         kernel_display_element.hide();
@@ -115,19 +133,29 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
     filter_select.change(() => {
         let option = filter_select.find(':selected');
         filter_t = parseInt(option.val());
-        image_update();
+        image_update(image);
     });
 
     operation_select.change(() => {
+        /**
+         * Updating the uniform value */
         let option = operation_select.find(':selected');
         operation_t = parseInt(option.val());
         console.log('Selected op = ', operation_t);
+
+        /**
+         * Changing slider visibility and labels */
         for (let slider of [k_size_slider, angle_slider, intensity_slider, steep_slider]) {
             let a_name = slider.attr('name');
             if (operation_t !== CONVOLUTION_FILTER) {
                 $('#' + a_name + '_group').hide(500);
             } else {
                 $('#' + a_name + '_group').show(500);
+            }
+            if (operation_t === DITHERING_FILTER) {
+                $('#matrix_group').show(500);
+            } else {
+                $('#matrix_group').hide(500);
             }
         }
         if (operation_t !== CONVOLUTION_FILTER) {
@@ -137,102 +165,143 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
             kernel_display_element.show(500);
             filter_select_group.show(500);
         }
-        image_update();
+        image_update(image);
     });
-
-    /***
-     * Making the image file */
-    let image = new Image();
-    image.src = 'assets/img_flower.jpg'
-    image.crossOrigin = "Anonymous";
-    image.alt = 'Sample image';
-    image.onload = () => {
-        render_img(image, program);
-    };
 };
 
-function image_update() {
+function image_update(image) {
     /**
      * Take the filter type and slider value and update the kernel in shader */
-    let k_size = slider_values[k_size_slider.attr('name')];
-    let sel_angle = slider_values[angle_slider.attr('name')];
-    let intensity = slider_values[intensity_slider.attr('name')];
-    let steepness = slider_values[steep_slider.attr('name')];
-
-    let array_size = k_size * k_size;
-    let kernel_data = [];
-
-    if (filter_t === BASIC_BLUR) {
-        for (let i = 0; i < k_size; i++) {
-            for (let j = 0; j < k_size; j++) {
-                kernel_data.push(1 / array_size);
-            }
-        }
-    } else {
-        let radian_angle = sel_angle * Math.PI / 180;
-        for (let i = 0; i < k_size; i++) {
-            for (let j = 0; j < k_size; j++) {
-                let x = i + 0.5 - k_size / 2.0;
-                let y = j + 0.5 - k_size / 2.0;
-                let out = 1.0;
-                if (filter_t === GAUSSIAN_BLUR) {
-                    let f_xy = (x * x + y * y) / (k_size * steepness);
-                    out = Math.exp(-f_xy);
-                } else if (filter_t === GAUSSIAN_BLUR_DIR) {
-                    let f_xy = Math.cos(radian_angle) * x + Math.sin(radian_angle) * y;
-                    out = Math.exp(-(f_xy * f_xy) / (k_size * steepness));
-                } else if (filter_t === DIFFERENTIAL_BLUR) {
-                    let f_xy = Math.cos(radian_angle) * x + Math.sin(radian_angle) * y;
-                    out = (f_xy + k_size) / (k_size * steepness);
-                }
-                kernel_data.push(out);
-            }
-        }
-    }
-
-    /* Find out the sum of kernel array */
-    let kernel_sum = 0.0;
-    for (let i = 0; i < k_size; i++) {
-        for (let j = 0; j < k_size; j++) {
-            kernel_sum += kernel_data[i * k_size + j];
-        }
-    }
-
-    let max_value = -100000000;
-    /* Normalize this array */
-    for (let i = 0; i < k_size; i++) {
-        for (let j = 0; j < k_size; j++) {
-            kernel_data[i * k_size + j] = kernel_data[i * k_size + j] / kernel_sum;
-            /* Find out the max value for normalization */
-            if (max_value < kernel_data[i * k_size + j]) {
-                max_value = kernel_data[i * k_size + j];
-            }
-        }
-    }
-
-    /**
-     * Generating HTML Test */
-    kernel_display_element.html('');
-    kernel_display_element.css('grid-template-columns', 'repeat(' + k_size + ', 0.5vh)');
-    kernel_display_element.css('grid-template-rows', 'repeat(' + k_size + ', 0.5vh)');
-    kernel_display_element.css('height', '0.5vh');
-
-    for (let i = 0; i < k_size; i++) {
-        for (let j = 0; j < k_size; j++) {
-            // let per_val = (1 - kernel_data[i*k_size + j])*100;
-            const per_val = (1 - 2 * Math.atan(kernel_data[i * k_size + j] * array_size) / Math.PI) * 100;
-            const rgb_val = `rgb(${per_val}%, ${per_val}%, ${per_val}%)`;
-            const ele = $('<div class="kernel-ele" style="background-color: ' + rgb_val + '"></div>');
-            kernel_display_element.append(ele);
-        }
-    }
 
     let webgl = getWebGL();
-    webgl.uniform1fv(kernel_data_loc, kernel_data);
-    webgl.uniform1i(kernel_size_loc, k_size);
+
+    if (operation_t === CONVOLUTION_FILTER) {
+
+        /**
+         * Update the convolution filter properties */
+        let k_size = slider_values[k_size_slider.attr('name')];
+        let sel_angle = slider_values[angle_slider.attr('name')];
+        let intensity = slider_values[intensity_slider.attr('name')];
+        let steepness = slider_values[steep_slider.attr('name')];
+
+        intensity = (intensity*500 + 0.0001)/(image.width + image.height);
+        if (intensity > 100000) {
+            intensity = 2.0;
+        }
+
+        steepness = 4.2/(steepness + 0.0001);
+        console.log('I = ', intensity)
+
+        let array_size = k_size * k_size;
+        let kernel_data = [];
+
+        if (filter_t === BASIC_BLUR) {
+            for (let i = 0; i < k_size; i++) {
+                for (let j = 0; j < k_size; j++) {
+                    kernel_data.push(1 / array_size);
+                }
+            }
+        } else {
+            let radian_angle = sel_angle * Math.PI / 180;
+            for (let i = 0; i < k_size; i++) {
+                for (let j = 0; j < k_size; j++) {
+                    let x = i + 0.5 - k_size / 2.0;
+                    let y = j + 0.5 - k_size / 2.0;
+                    let out = 1.0;
+                    if (filter_t === GAUSSIAN_BLUR) {
+                        let f_xy = (x * x + y * y) / (k_size * steepness);
+                        out = Math.exp(-f_xy);
+                    } else if (filter_t === GAUSSIAN_BLUR_DIR) {
+                        let f_xy = Math.cos(radian_angle) * x + Math.sin(radian_angle) * y;
+                        out = Math.exp(-(f_xy * f_xy) / (k_size * steepness));
+                    } else if (filter_t === DIFFERENTIAL_BLUR) {
+                        let f_xy = Math.cos(radian_angle) * x + Math.sin(radian_angle) * y;
+                        out = (f_xy*6*steepness + k_size) / (k_size);
+                    }
+                    kernel_data.push(out);
+                }
+            }
+        }
+
+        /* Find out the sum of kernel array */
+        let kernel_sum = 0.0;
+        for (let i = 0; i < k_size; i++) {
+            for (let j = 0; j < k_size; j++) {
+                kernel_sum += kernel_data[i * k_size + j];
+            }
+        }
+
+        let max_value = -100000000;
+        /* Normalize this array */
+        for (let i = 0; i < k_size; i++) {
+            for (let j = 0; j < k_size; j++) {
+                kernel_data[i * k_size + j] = kernel_data[i * k_size + j] / kernel_sum;
+                /* Find out the max value for normalization */
+                if (max_value < kernel_data[i * k_size + j]) {
+                    max_value = kernel_data[i * k_size + j];
+                }
+            }
+        }
+
+        /**
+         * Generating HTML Test */
+        kernel_display_element.html('');
+        kernel_display_element.css('grid-template-columns', 'repeat(' + k_size + ', 0.5vh)');
+        kernel_display_element.css('grid-template-rows', 'repeat(' + k_size + ', 0.5vh)');
+        kernel_display_element.css('height', '0.5vh');
+
+        for (let i = 0; i < k_size; i++) {
+            for (let j = 0; j < k_size; j++) {
+                // let per_val = (1 - kernel_data[i*k_size + j])*100;
+                const per_val = (1 - 2 * Math.atan(kernel_data[i * k_size + j] * array_size) / Math.PI) * 100;
+                const rgb_val = `rgb(${per_val}%, ${per_val}%, ${per_val}%)`;
+                const ele = $('<div class="kernel-ele" style="background-color: ' + rgb_val + '"></div>');
+                kernel_display_element.append(ele);
+            }
+        }
+        webgl.uniform1fv(kernel_data_loc, kernel_data);
+        webgl.uniform1i(kernel_size_loc, k_size);
+        webgl.uniform1f(intensity_loc, intensity);
+    } else if (operation_t === DITHERING_FILTER) {
+        let matrix_size = slider_values[m_size_slider.attr('name')];
+        let pow_val = matrix_size;
+        $('#matrix_label').html(`${Math.pow(2, pow_val)} by ${Math.pow(2, pow_val)}`);
+        if (pow_val > 0) {
+            console.log('p = ', pow_val);
+            let m_data = [];
+            let matrix = [[0, 2], [3, 1]];
+            for (let i = 1; i < pow_val; i++) {
+                matrix = make_matrix(matrix);
+            }
+            let side = matrix.length;
+            for(let i=0; i<side; i++) {
+                for(let j=0; j<side; j++) {
+                    m_data.push(matrix[i][j] + 0.000000001);
+                }
+            }
+            webgl.uniform1fv(matrix_data_loc, m_data);
+            webgl.uniform1i(matrix_size_loc, side);
+            console.log(side);
+        } else {
+            console.log('Something went wrong with matrix size select: ', matrix_size);
+        }
+
+    }
     webgl.uniform1i(choice_algo_loc, operation_t);
-    webgl.uniform1i(intensity_loc, intensity)
     webgl.drawArrays(webgl.TRIANGLES, 0, 6);
+}
+
+const make_matrix = (input = [[0, 2], [3, 1]]) => {
+    let outMat = [];
+    let side = input.length;
+    for(let i=0; i<side*2; i++) {
+        let temp = [];
+        for(let j=0; j<side*2; j++) {
+            temp.push(input[i%side][j%side]*4 + input[i>>1][j>>1]);
+        }
+        outMat.push(temp);
+    }
+    return outMat;
 }
 
 const create_texture = () => {
@@ -287,9 +356,8 @@ const render_img = (image, program) => {
     let positionBuffer = webgl.createBuffer();
     webgl.bindBuffer(webgl.ARRAY_BUFFER, positionBuffer);
 
-    let size = 2;               // 2 components per iteration
+    let size = 2;
     let stride = 0;             // 0 = move forward size * sizeof(type)
-    // each iteration to get the next position
     let offset = 0;             // start at the beginning of the buffer
     webgl.vertexAttribPointer(positionAttribute, size, webgl.FLOAT, false, stride, offset);
     let x_1 = 0;

@@ -2,7 +2,7 @@
 <html lang="en">
 
     <head>
-        <title>Project 1</title>
+        <title>Project 2</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="bootstrap/css/bootstrap.css">
@@ -45,22 +45,32 @@
                                 </div>
                                 <div class="row">
                                     <div class="input-group mb-3 col" id="k_size_group">
-                                        <label for="k_size_inp" class="form-label" id="k_size_label">Kernel Size</label>
+                                        <label for="k_size_inp" class="form-label">Kernel Size:
+                                            <span id="k_size_label"></span></label>
                                         <input type="range" class="form-range" id="k_size_inp" min="5" max="25" step="2" name="k_size">
                                     </div>
                                     <div class="input-group mb-3 col" id="intensity_group">
-                                        <label for="intensity_inp" class="form-label" id="intensity_label">Intensity: </label>
+                                        <label for="intensity_inp" class="form-label">Intensity:
+                                            <span id="intensity_label"></span></label>
                                         <input type="range" class="form-range" id="intensity_inp" min="2" max="50" step="2" name="intensity">
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="input-group mb-3 col" id="angle_group">
-                                        <label for="angle_inp" class="form-label" id="angle_label">Angle: </label>
+                                        <label for="angle_inp" class="form-label">Angle:
+                                            <span id="angle_label"></span></label>
                                         <input type="range" class="form-range" id="angle_inp" min="0" max="359" step="5" name="angle">
                                     </div>
                                     <div class="input-group mb-3 col" id="steep_group">
-                                        <label for="steep_inp" class="form-label" id="steep_label">Steep: </label>
-                                        <input type="range" class="form-range" id="steep_inp" min="0.1" max="10" step="0.1" name="steep">
+                                        <label for="steep_inp" class="form-label">Steep:
+                                            <span id="steep_label"></span></label>
+                                        <input type="range" class="form-range" id="steep_inp" min="1" max="20" step="1" name="steep">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="input-group mb-3 col" id="matrix_group">
+                                        <label for="matrix_inp" class="form-label">Matrix Size: <span id="matrix_label"></span></label>
+                                        <input type="range" class="form-range" id="matrix_inp" min="1" max="5" step="1" name="matrix">
                                     </div>
                                 </div>
                                 <div id="kernel-rep">
