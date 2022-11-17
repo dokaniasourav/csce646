@@ -87,9 +87,9 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
     kernel_display_element = $('#kernel-rep');
 
     // Setting the defaults
-    slider_values[angle_slider.attr('name')] = 0;
-    slider_values[k_size_slider.attr('name')] = 25;
-    slider_values[intensity_slider.attr('name')] = 10;
+    slider_values[angle_slider.attr('name')] = 90;
+    slider_values[k_size_slider.attr('name')] = 10;
+    slider_values[intensity_slider.attr('name')] = 2;
     slider_values[steep_slider.attr('name')] = 1;
 
     k_size_slider.attr('max', UNIFORM_MAX);
@@ -143,7 +143,7 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
     /***
      * Making the image file */
     let image = new Image();
-    image.src = 'flower.jpg'
+    image.src = 'assets/img_flower.jpg'
     image.crossOrigin = "Anonymous";
     image.alt = 'Sample image';
     image.onload = () => {
