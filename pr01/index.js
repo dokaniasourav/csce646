@@ -101,7 +101,7 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
     /***
      * Making the image file */
     let image = new Image();
-    image.src = 'fox.jpg'
+    image.src = './assets/fox.jpg'
     image.crossOrigin = "Anonymous";
     image.alt = 'Sample image';
     image.onload = () => {
