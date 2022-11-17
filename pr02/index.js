@@ -41,11 +41,11 @@ const getWebGL = () => {
 }
 
 $('document').ready(() => {
-    fetch('/main.vert')
+    fetch('main.vert')
         .then((r1) => {
             r1.text().then((v_text) => {
                 console.log('Vert shader loaded');
-                fetch('/main.frag')
+                fetch('main.frag')
                     .then((r2) => {
                         r2.text().then((f_text) => {
                             console.log('Frag shader loaded');
