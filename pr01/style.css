@@ -8,14 +8,6 @@
     padding-top: 10px;
 }
 
-.operation-label {
-    min-width: 300px;
-}
-
-.form-floating {
-    margin-bottom: 10px;
-}
-
 #kernel-rep {
     display: grid;
     grid-template-columns: repeat(25, 0.5vh);
@@ -26,9 +18,4 @@
 #main-canvas {
     border: 1px solid gray;
     margin: 3px 0;
-}
-
-.controls-container{
-    min-width: 300px;
-    max-width: 900px;
 }

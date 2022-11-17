@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Project 1</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="bootstrap/css/bootstrap.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+<div class="container-fluid">
+  <div class='navbar-light bg-success navbar'>
+    <a class="navbar-brand text-white" href="#"> Sourav Dokania </a>
+    <h4 style="color: white">Project 1 (CSCE646)</h4>
+  </div>
+  <div class="row">
+    <div class="col canvas-container">
+      <canvas width="600px" height="400px" id="main-canvas">
+        Your browser does not support Canvas Elements
+      </canvas>
+      <br>
+    </div>
+    <div class="col">
+      <div class="filter-controls">
+        <div class="toast-header">
+          Filter Controls
+        </div>
+        <div class="input-group mb-3">
+          <span class="input-group-text">Filter Type: </span>
+          <select class="form-select" aria-label="Filter Selection" id="filter-select">
+            <option value="1">Basic Blur</option>
+            <option value="2">Gaussian Blur</option>
+            <option value="4">Gaussian Blur - Directional</option>
+          </select>
+        </div>
+        <div class="input-group mb-3">
+          <label for="kernel_size_inp" class="form-label" id="kernel_size_label">Kernel Size</label>
+          <input type="range" class="form-range" id="kernel_size_inp" min="5" max="25" step="1">
+        </div>
+        <div class="input-group mb-3">
+          <label for="angle_sel_inp" class="form-label" id="angle_sel_label">Angle: </label>
+          <input type="range" class="form-range" id="angle_sel_inp" min="0" max="359" step="5">
+        </div>
+        <div id="kernel-rep">
+        </div>
+      </div>
+    </div>
+    <div class="col">
+    </div>
+  </div>
+</div>
+<script src="jQuery/jq.js"></script>
+<script src="webgl-utils.js"></script>
+<script src="bootstrap/js/bootstrap.js"></script>
+<script src="index.js" type="application/javascript"></script>
+</body>
+
+</html>
