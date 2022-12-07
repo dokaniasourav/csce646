@@ -116,6 +116,7 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
         let option = filter_select.find(':selected');
         filter_t = parseInt(option.val());
         image_update();
+        console.log('HELLO WORLD');
     });
 
     operation_select.change(() => {
