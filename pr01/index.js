@@ -1,63 +1,73 @@
+"use strict";
 
 const UNIFORM_MAX = 25;
 
-let slider_values = {};
+const vertexShaderSource = `#version 300 es
 
-const CONVOLUTION_FILTER = 1;
-const DITHERING_FILTER = 2;
+    #pragma vscode_glsllint_stage: vert
 
-const BASIC_BLUR = 1;
-const GAUSSIAN_BLUR = 2;
-const GAUSSIAN_BLUR_DIR = 3;
-const DIFFERENTIAL_BLUR = 4;
+    in vec2 a_position;
+    in vec2 a_texCord;
+    uniform vec2 u_resolution;
+    out vec2 v_texCord;
+    
+    // all shaders have a main function
+    void main() {
 
+      vec2 zeroToOne = a_position / u_resolution;
+      vec2 zeroToTwo = zeroToOne * 2.0;
+      vec2 clipSpace = zeroToTwo - 1.0;    
+      gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+      v_texCord = a_texCord;
+    }
+`;
 
-let operation_t = CONVOLUTION_FILTER;
+const fragmentShaderSource = `#version 300 es
+
+    #pragma vscode_glsllint_stage: frag
+
+    precision highp float;
+    
+    uniform sampler2D u_image;
+    in vec2 v_texCord;
+    out vec4 outColor;
+    uniform float u_kernel[${UNIFORM_MAX*UNIFORM_MAX}];
+    uniform float u_kernel_weight;
+    uniform int u_kernel_size;
+    
+    void main() {
+        vec2 onePixel = vec2(1) / vec2(textureSize(u_image, 0));
+        vec4 colorSum = vec4(0.0);      // Initially zero -- 0.0, 0.0, 0.0, 0.0
+        float kernelSum = 0.0;
+        int index = 0;
+
+        for(int i=-(u_kernel_size - 1)/2; i<=(u_kernel_size - 1)/2; i++)
+        {
+            for(int j=-(u_kernel_size - 1)/2; j<=(u_kernel_size - 1)/2; j++)
+            {
+                index = (i + (u_kernel_size - 1)/2 ) * u_kernel_size + (j + (u_kernel_size - 1)/2);
+                colorSum += texture(u_image, v_texCord + onePixel * vec2(i,j)) * u_kernel[index];
+                kernelSum += u_kernel[index];
+            }
+        }
+        kernelSum = kernelSum / 1.0;
+        colorSum = vec4((colorSum).rgb/kernelSum, 1);
+        outColor = vec4(colorSum.rgb, 1);
+    }
+`;
+
+let k_size = 3;
+let sel_angle = 0;
 let filter_t = 1;
-
 let kernel_data_loc;
 let kernel_size_loc;
-let choice_algo_loc;
-let intensity_loc;
-
-/**
- * Updating image based on GUI
- * */
-
-let k_size_slider;
-let intensity_slider;
-let steep_slider;
-let angle_slider;
-
-let kernel_display_element;
-
-const getWebGL = () => {
-    let canvas = document.querySelector("#main-canvas");
-    let webgl = canvas.getContext("webgl2");
-    if (!webgl) {
-        window.alert('Webgl is not supported on this system');
-    }
-    return webgl;
-}
+let all_kernel_dis_ele = [];
 
 $('document').ready(() => {
-    fetch('/main.vert')
-        .then((r1) => {
-            r1.text().then((v_text) => {
-                console.log('Vert shader loaded');
-                fetch('/main.frag')
-                    .then((r2) => {
-                        r2.text().then((f_text) => {
-                            console.log('Frag shader loaded');
-                            startExec(v_text, f_text);
-                        });
-                    });
-            });
-        });
-});
 
-const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
-    const webgl = getWebGL();
+    let canvas = document.querySelector("#main-canvas");
+    let webgl = canvas.getContext("webgl2");
+    if (!webgl) { return; }
 
     // setup GLSL program
     let program = webglUtils.createProgramFromSources(webgl,
@@ -66,203 +76,133 @@ const startExec = (vertexShaderSource = '', fragmentShaderSource = '') => {
 
     kernel_data_loc = webgl.getUniformLocation(program, 'u_kernel[0]');
     kernel_size_loc = webgl.getUniformLocation(program, 'u_kernel_size');
-    choice_algo_loc = webgl.getUniformLocation(program, 'choice_algo');
-    intensity_loc = webgl.getUniformLocation(program, 'intensity');
-
-
-    const operation_select = $('#operation-select');
-    const filter_select = $('#filter-select');
-
-    const operation_select_group = $('#operation-select-group');
-    const filter_select_group = $('#filter-select-group');
-
 
 
     /**
-     * Initialize the slider inputs **/
-    k_size_slider = $('#k_size_inp');
-    intensity_slider = $('#intensity_inp');
-    angle_slider = $('#angle_inp');
-    steep_slider = $('#steep_inp');
-    kernel_display_element = $('#kernel-rep');
-
-    // Setting the defaults
-    slider_values[angle_slider.attr('name')] = 90;
-    slider_values[k_size_slider.attr('name')] = 10;
-    slider_values[intensity_slider.attr('name')] = 2;
-    slider_values[steep_slider.attr('name')] = 1;
-
-    k_size_slider.attr('max', UNIFORM_MAX);
-    image_update();
-
-    for (let slider of [k_size_slider, angle_slider, intensity_slider, steep_slider]) {
-        let a_name = slider.attr('name');
-        slider.val(slider_values[a_name]);
-        let A_Name = a_name[0].toUpperCase() + a_name.substring(1);
-        $('#' + a_name + '_label').html(`${A_Name} is ${slider_values[a_name]}`);
-        slider.change(() => {
-            let a_name = slider.attr('name');
-            slider_values[a_name] = parseInt(slider.val());
-            let A_Name = a_name[0].toUpperCase() + a_name.substring(1);
-            $('#' + a_name + '_label').html(`${A_Name} is ${slider_values[a_name]}`);
-            image_update();
-        })
-        $('#' + a_name + '_group').hide();
-        kernel_display_element.hide();
-        filter_select_group.hide();
+     * Generating HTML Test */
+    let kernel_dis_ele = $('#kernel-rep');
+    for (let i=0; i<UNIFORM_MAX*UNIFORM_MAX; i++) {
+        const ele = $('<div class="kernel-ele" style="background-color: rgb(100%,100%,100%)"></div>');
+        all_kernel_dis_ele.push(ele);
+        kernel_dis_ele.append(ele);
     }
 
-    filter_select.change(() => {
-        let option = filter_select.find(':selected');
-        filter_t = parseInt(option.val());
+
+    /**
+     * Updating image based on GUI
+     * */
+    const k_size_slider = $('#kernel_size_inp');
+    const angle_slider = $('#angle_sel_inp');
+    const filter_select = $('#filter-select');
+
+    k_size_slider.val(k_size);
+    angle_slider.val(sel_angle);
+    image_update();
+
+    k_size_slider.change(() => {
+        k_size = k_size_slider.val();
+        image_update();
+    });
+
+    angle_slider.change(() => {
+        sel_angle = angle_slider.val();
         image_update();
         console.log('HELLO WORLD');
     });
 
-    operation_select.change(() => {
-        let option = operation_select.find(':selected');
-        operation_t = parseInt(option.val());
-        console.log('Selected op = ', operation_t);
-        for (let slider of [k_size_slider, angle_slider, intensity_slider, steep_slider]) {
-            let a_name = slider.attr('name');
-            if (operation_t !== CONVOLUTION_FILTER) {
-                $('#' + a_name + '_group').hide(500);
-            } else {
-                $('#' + a_name + '_group').show(500);
-            }
-        }
-        if (operation_t !== CONVOLUTION_FILTER) {
-            kernel_display_element.hide(500);
-            filter_select_group.hide(500);
-        } else {
-            kernel_display_element.show(500);
-            filter_select_group.show(500);
-        }
+    filter_select.change(() => {
+        let option = filter_select.find(':selected');
+        filter_t = parseInt(option.val());
         image_update();
     });
 
     /***
      * Making the image file */
     let image = new Image();
-    image.src = 'assets/img_flower.jpg'
+    image.src = 'img_flower.jpg'
     image.crossOrigin = "Anonymous";
     image.alt = 'Sample image';
     image.onload = () => {
         render_img(image, program);
     };
-};
+});
 
 function image_update() {
     /**
      * Take the filter type and slider value and update the kernel in shader */
-    let k_size = slider_values[k_size_slider.attr('name')];
-    let sel_angle = slider_values[angle_slider.attr('name')];
-    let intensity = slider_values[intensity_slider.attr('name')];
-    let steepness = slider_values[steep_slider.attr('name')];
-
     let array_size = k_size * k_size;
     let kernel_data = [];
-
-    if (filter_t === BASIC_BLUR) {
-        for (let i = 0; i < k_size; i++) {
+    $('#kernel_size_label').html(`Kernel Size: ${k_size} * ${k_size}`);
+    $('#angle_sel_label').html(`Angle: ${sel_angle} degree`);
+    let radian_angle = sel_angle * Math.PI / 180;
+    if (filter_t === 1) {
+        for(let i=0; i<k_size; i++) {
             for (let j = 0; j < k_size; j++) {
                 kernel_data.push(1 / array_size);
             }
         }
     } else {
-        let radian_angle = sel_angle * Math.PI / 180;
         for (let i = 0; i < k_size; i++) {
             for (let j = 0; j < k_size; j++) {
-                let x = i + 0.5 - k_size / 2.0;
-                let y = j + 0.5 - k_size / 2.0;
+                let x = i + 0.5 - k_size/2.0;
+                let y = j + 0.5 - k_size/2.0;
                 let out = 1.0;
-                if (filter_t === GAUSSIAN_BLUR) {
-                    let f_xy = (x * x + y * y) / (k_size * steepness);
+                if (filter_t === 2) {
+                    let f_xy = (x*x + y*y) / k_size;
                     out = Math.exp(-f_xy);
-                } else if (filter_t === GAUSSIAN_BLUR_DIR) {
+                } else if (filter_t === 4) {
                     let f_xy = Math.cos(radian_angle) * x + Math.sin(radian_angle) * y;
-                    out = Math.exp(-(f_xy * f_xy) / (k_size * steepness));
-                } else if (filter_t === DIFFERENTIAL_BLUR) {
-                    let f_xy = Math.cos(radian_angle) * x + Math.sin(radian_angle) * y;
-                    out = (f_xy + k_size) / (k_size * steepness);
+                    out = Math.exp(-(f_xy*f_xy)/k_size);
                 }
                 kernel_data.push(out);
             }
         }
     }
 
-    /* Find out the sum of kernel array */
     let kernel_sum = 0.0;
-    for (let i = 0; i < k_size; i++) {
+    for(let i=0; i<k_size; i++) {
         for (let j = 0; j < k_size; j++) {
-            kernel_sum += kernel_data[i * k_size + j];
+            kernel_sum += kernel_data[i*k_size + j];
         }
     }
 
-    let max_value = -100000000;
-    /* Normalize this array */
-    for (let i = 0; i < k_size; i++) {
+    for(let i=0; i<k_size; i++) {
         for (let j = 0; j < k_size; j++) {
-            kernel_data[i * k_size + j] = kernel_data[i * k_size + j] / kernel_sum;
-            /* Find out the max value for normalization */
-            if (max_value < kernel_data[i * k_size + j]) {
-                max_value = kernel_data[i * k_size + j];
+            kernel_data[i*k_size + j] = kernel_data[i*k_size + j] / kernel_sum;
+        }
+    }
+
+    for(let i=0; i<UNIFORM_MAX; i++) {
+        for(let j=0; j<UNIFORM_MAX; j++) {
+            if(i < k_size && j < k_size) {
+                let per_val = (1 - 2*Math.atan(kernel_data[i*k_size + j] * array_size)/Math.PI)*100;
+                let rgb_val = `rgb(${per_val}%, ${per_val}%, ${per_val}%)`;
+                all_kernel_dis_ele[i*UNIFORM_MAX + j].css('background-color', rgb_val);
+            } else {
+                all_kernel_dis_ele[i*UNIFORM_MAX + j].css('background-color', 'rgb(100%,100%,100%)');
             }
         }
     }
 
-    /**
-     * Generating HTML Test */
-    kernel_display_element.html('');
-    kernel_display_element.css('grid-template-columns', 'repeat(' + k_size + ', 0.5vh)');
-    kernel_display_element.css('grid-template-rows', 'repeat(' + k_size + ', 0.5vh)');
-    kernel_display_element.css('height', '0.5vh');
-
-    for (let i = 0; i < k_size; i++) {
-        for (let j = 0; j < k_size; j++) {
-            // let per_val = (1 - kernel_data[i*k_size + j])*100;
-            const per_val = (1 - 2 * Math.atan(kernel_data[i * k_size + j] * array_size) / Math.PI) * 100;
-            const rgb_val = `rgb(${per_val}%, ${per_val}%, ${per_val}%)`;
-            const ele = $('<div class="kernel-ele" style="background-color: ' + rgb_val + '"></div>');
-            kernel_display_element.append(ele);
-        }
-    }
-
-    let webgl = getWebGL();
+    let canvas = document.querySelector("#main-canvas");
+    let webgl = canvas.getContext("webgl2");
     webgl.uniform1fv(kernel_data_loc, kernel_data);
     webgl.uniform1i(kernel_size_loc, k_size);
-    webgl.uniform1i(choice_algo_loc, operation_t);
-    webgl.uniform1i(intensity_loc, intensity)
     webgl.drawArrays(webgl.TRIANGLES, 0, 6);
 }
 
-const create_texture = () => {
-    /**
-     * Creating a texture for image display */
-    const webgl = getWebGL();
-    const texture = webgl.createTexture();
-    webgl.bindTexture(webgl.TEXTURE_2D, texture);     // Bind it to texture unit 0' 2D bind point
-    // Set the parameters, so we don't need mips,
-    // and so we're not filtering and we don't repeat at the edges
-    webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_WRAP_S, webgl.CLAMP_TO_EDGE);
-    webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_WRAP_T, webgl.CLAMP_TO_EDGE);
-    webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_MIN_FILTER, webgl.NEAREST);
-    webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_MAG_FILTER, webgl.NEAREST);
-
-    return texture;
-};
-
-const render_img = (image, program) => {
+function render_img(image, program) {
     /**
      * Set up the canvas and display image */
     let canvas = document.querySelector("#main-canvas");
-    canvas.height = canvas.width * (image.height / image.width);
-    let webgl = getWebGL();
+    canvas.height = canvas.width * (image.height/image.width);
+    let webgl = canvas.getContext("webgl2");
     if (!webgl) { return; }
 
     // Get locations of uniform variables
     const imageLocation = webgl.getUniformLocation(program, "u_image");
     const resolutionLocation = webgl.getUniformLocation(program, "u_resolution");
+
 
     /**
      * Passing the kernel information to the fragment shader */
@@ -270,8 +210,13 @@ const render_img = (image, program) => {
     for (let i = 0; i < 1; i++) {
         kernel_info.push(1);
     }
-    webgl.uniform1fv(kernel_data_loc, kernel_info);
-    webgl.uniform1i(kernel_size_loc, 1);
+    const kernel_loc = webgl.getUniformLocation(program, 'u_kernel[0]');
+    webgl.uniform1fv(kernel_loc, kernel_info);
+    const kernel_size = webgl.getUniformLocation(program, 'u_kernel_size');
+    webgl.uniform1i(kernel_size, 1);
+    const kernel_weight = webgl.getUniformLocation(program, 'u_kernel_weight');
+    webgl.uniform1f(kernel_weight, 1.0);
+
 
     /**
      *     Create a vertex array object (attribute state),
@@ -282,10 +227,9 @@ const render_img = (image, program) => {
 
     /**
      *  Passing the position information to the vertex shader */
+    let positionBuffer = webgl.createBuffer();
     const positionAttribute = webgl.getAttribLocation(program, "a_position");
     webgl.enableVertexAttribArray(positionAttribute);
-
-    let positionBuffer = webgl.createBuffer();
     webgl.bindBuffer(webgl.ARRAY_BUFFER, positionBuffer);
 
     let size = 2;               // 2 components per iteration
@@ -293,13 +237,18 @@ const render_img = (image, program) => {
     // each iteration to get the next position
     let offset = 0;             // start at the beginning of the buffer
     webgl.vertexAttribPointer(positionAttribute, size, webgl.FLOAT, false, stride, offset);
+
     let x_1 = 0;
     let x_2 = canvas.width;
     let y_1 = 0;
     let y_2 = canvas.height;
     webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array([
-        x_1, y_1, x_2, y_1, x_1, y_2,
-        x_1, y_2, x_2, y_1, x_2, y_2,
+        x_1, y_1,
+        x_2, y_1,
+        x_1, y_2,
+        x_1, y_2,
+        x_2, y_1,
+        x_2, y_2,
     ]), webgl.STATIC_DRAW);
 
 
@@ -307,23 +256,28 @@ const render_img = (image, program) => {
      *  Passing the texture coordinates to the vertex shader */
     const texCordAttribute = webgl.getAttribLocation(program, "a_texCord");
     webgl.enableVertexAttribArray(texCordAttribute);
-
     let texCordBuffer = webgl.createBuffer();
     webgl.bindBuffer(webgl.ARRAY_BUFFER, texCordBuffer);
-    webgl.vertexAttribPointer(texCordAttribute, size, webgl.FLOAT, false, stride, offset);
-
     webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array([
         0.0, 0.0, 1.0, 0.0, 0.0, 1.0,    // Triangle 1
         0.0, 1.0, 1.0, 0.0, 1.0, 1.0,    // Triangle 2
     ]), webgl.STATIC_DRAW);
+    webgl.vertexAttribPointer(texCordAttribute, size, webgl.FLOAT, false, stride, offset);
 
 
 
     /**
      * Creating a texture for image display */
-    const texture = create_texture();
-    console.log('Created texture ', texture);
+    let texture = webgl.createTexture();
+    // (ie, the unit all other texture commands will affect
     webgl.activeTexture(webgl.TEXTURE0 + 0);    // make unit 0 the active texture uint
+    webgl.bindTexture(webgl.TEXTURE_2D, texture);     // Bind it to texture unit 0' 2D bind point
+    // Set the parameters, so we don't need mips, and so we're not filtering,
+    // and we don't repeat at the edges
+    webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_WRAP_S, webgl.CLAMP_TO_EDGE);
+    webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_WRAP_T, webgl.CLAMP_TO_EDGE);
+    webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_MIN_FILTER, webgl.NEAREST);
+    webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_MAG_FILTER, webgl.NEAREST);
 
     /**
      *  Upload the image into the texture */
