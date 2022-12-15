@@ -4,7 +4,6 @@
 
 precision highp float;
 
-
 uniform sampler2D u_image;
 in vec2 v_texCord;
 out vec4 outColor;
