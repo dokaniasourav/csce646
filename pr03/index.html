@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Project 2 -- CSCE646</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../common_lib/bootstrap/css/bootstrap.css">
+</head>
+<body>
+    <div class="container" style="margin: 0 auto">
+        <div class="h2" style="margin: auto;">
+            Project 2
+        </div>
+        <hr>
+        <div class="h3">
+            Ordered dithering on GPU and Convolution filters
+        </div>
+        <br>
+        <br>
+        <span class="toast-header">Created using WebGL2</span>
+        <a href="project.html" class="alert-link"> See the Web interface</a>
+        <div class="h4">
+            <br>
+            <br>
+            Ordered dithering filters - 4 X 4 matrix
+        </div>
+        <figure class="figure">
+            <img src="assets/fox.jpg" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Original Image</h5></figcaption>
+        </figure>
+        <figure class="figure">
+            <img src="assets/dithering_4.png" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Filtered Image</h5></figcaption>
+        </figure>
+
+        <div class="h4">
+            <br>
+            <br>
+            Ordered dithering filters - 8 X 8 matrix
+        </div>
+        <figure class="figure">
+            <img src="assets/fox.jpg" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Original Image</h5></figcaption>
+        </figure>
+        <figure class="figure">
+            <img src="assets/dithering_8.png" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Filtered Image</h5></figcaption>
+        </figure>
+
+        <div class="h4">
+            <br>
+            <br>
+            Ordered dithering filters - 16 X 16 matrix
+        </div>
+        <figure class="figure">
+            <img src="assets/city.jpg" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Original Image</h5></figcaption>
+        </figure>
+        <figure class="figure">
+            <img src="assets/dithering_16.png" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Filtered Image</h5></figcaption>
+        </figure>
+
+        <div class="h4">
+            <br>
+            <br>
+            Gaussian filter - Kernel size: 25, Spread intensity: 50 and Steepness: 5
+        </div>
+        <figure class="figure">
+            <img src="assets/city.jpg" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Original Image</h5></figcaption>
+        </figure>
+        <figure class="figure">
+            <img src="assets/gaussian_25_50_5.png" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Filtered Image</h5></figcaption>
+        </figure>
+
+        <div class="h4">
+            <br>
+            <br>
+            Gaussian directional filter - Kernel size: 25, Spread intensity: 50, angle: 300 and Steepness: 12
+        </div>
+        <figure class="figure">
+            <img src="assets/city.jpg" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Original Image</h5></figcaption>
+        </figure>
+        <figure class="figure">
+            <img src="assets/gaussian_dir_25_50_300_12.png" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Filtered Image</h5></figcaption>
+        </figure>
+
+        <div class="h4">
+            <br>
+            <br>
+            Differential directional Filter - Kernel size: 25, Spread intensity: 50, angle: 130 and Steepness: 2
+        </div>
+        <figure class="figure">
+            <img src="assets/city.jpg" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Original Image</h5></figcaption>
+        </figure>
+        <figure class="figure">
+            <img src="assets/differential_23_50_130_2.png" class="figure-img img-fluid rounded"
+                 alt="---" width="500px">
+            <figcaption class="figure-caption" ><h5>Filtered Image</h5></figcaption>
+        </figure>
+
+        <div class="h4">
+            <br>
+            <br>
+            User interface Example
+        </div>
+        <figure class="figure">
+            <img src="assets/ui_differential.png" class="figure-img img-fluid rounded"
+                 alt="---" width="1200px">
+            <figcaption class="figure-caption" ><h5>User Interface</h5></figcaption>
+        </figure>
+        <br>
+        <h4 class="link-info"> Created by Sourav Dokania for Project 2 of CSCE646 </h4>
+    </div>
+</body>
+</html>
