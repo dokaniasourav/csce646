@@ -150,10 +150,29 @@ $('document').ready(() => {
     download_btn.click(() => {
         download_img(MAIN_CANVAS);
     })
-
     input_group_xy.hide(500);
     filter_t = parseInt(filter_select.find(':selected').val());
+
+    const interval = setInterval(() => {
+        regular_update(SIDE_CANVAS);
+    }, 100);
+
 });
+
+let steepness = 0.1;
+
+const regular_update = (canvas_id) => {
+    let webgl = getWebGL(canvas_id);
+    let program = webgl_programs[canvas_id];
+    const steep_loc = webgl.getUniformLocation(program, 'steep');
+    webgl.uniform1f(steep_loc, steepness);
+    webgl.drawArrays(webgl.TRIANGLES, 0, 6);
+
+    steepness += 0.1;
+    if (steepness > 10000.0) {
+        steepness = 0.0;
+    }
+}
 
 const update_all_canvas_ele = () => {
     for (let canvas_id of canvas_ids) {
@@ -256,7 +275,7 @@ function image_update(canvas_id) {
     const kernel_size_loc = webgl.getUniformLocation(program, 'u_kernel_size');
     const intensity_loc = webgl.getUniformLocation(program, 'intensity');
     const angle_loc = webgl.getUniformLocation(program, 'angle');
-    const steep_loc = webgl.getUniformLocation(program, 'steepness');
+    const steep_loc = webgl.getUniformLocation(program, 'steep');
 
     webgl.uniform1i(function_sel_loc, filter_t);
     webgl.uniform1i(kernel_size_loc, k_size);
@@ -265,9 +284,9 @@ function image_update(canvas_id) {
     webgl.uniform1f(angle_loc, sel_angle);
     webgl.uniform1f(steep_loc, steepness);
 
-    if (canvas_id === MAIN_CANVAS) {
-    } else if (canvas_id === SIDE_CANVAS) {
-    }
+    // if (canvas_id === MAIN_CANVAS) {
+    // } else if (canvas_id === SIDE_CANVAS) {
+    // }
     webgl.drawArrays(webgl.TRIANGLES, 0, 6);
 }
 

@@ -66,7 +66,7 @@ vec2 transform_function(vec2 xy_c) {
 
 void main() {
     vec4 color = texture(u_image, v_texCord);
-    vec2 indexCord = vec2(textureSize(u_image, 0)) * v_texCord;
+    vec2 indexCord = vec2(textureSize(u_image, 0)) * v_texCord + vec2(steep/1.08, steep/1.08);
 
     int matrix_size_2 = int((sqrt(float(u_kernel_size))*15.0 + 35.0));
 
@@ -79,19 +79,18 @@ void main() {
     xy_cc = xy_cc * 2.0 - vec2(1.0);
     float ln_c = get_mag(xy_cc);
 
-    if (xc > 0.9 || yc > 0.9) {
-        float dot_p = 1.0;
-        outColor = vec4(dot_p, dot_p, dot_p, 1.0);
-    }
+//    if (xc > 0.98 || yc > 0.98) {
+//        float dot_p = 1.0;
+//        outColor = vec4(dot_p, dot_p, dot_p, 1.0);
+//    }
 //    else {
 //        outColor = vec4(1.0, 0.0, 0.0, 1.0);
 //    }
-    else {
-        float dot_p = ((xy_out.x * xy_cc.x) + (xy_out.y * xy_cc.y)) / ln_c;
-        dot_p = dot_p + 0.0000001;
-        dot_p = pow(dot_p, 1111.0 / intensity);
-        outColor = vec4(dot_p, dot_p, dot_p, 1.0);
-    }
+    float dot_p = ((xy_out.x * xy_cc.x) + (xy_out.y * xy_cc.y)) / pow(ln_c, 1.0001 + intensity / 1000.0);
+    dot_p = dot_p + 0.0000001;
+    dot_p = pow(dot_p, 1111.0 / sqrt(intensity));
+    outColor = vec4(dot_p, dot_p, dot_p, 1.0);
+//    }
 
 //    outColor = vec4(dither(color.rgb), 1);
 }
