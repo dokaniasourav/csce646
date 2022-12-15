@@ -1,55 +1,25 @@
 
+const UNIFORM_MAX = 25;
 
-class slider_controls {
-    constructor(name, def, min, max, step=1.0) {
-        this.name = name;
-        this.min = min;
-        this.max = max;
+let slider_values = {};
 
-        this.slider = $('#' + name + '_inp');
-        this.label = $('#' + name + '_label');
+// const CONVOLUTION_FILTER = 1;
+// const DITHERING_FILTER = 2;
 
-        if (! this.slider) {
-            console.log('Something is wrong with this element');
-        }
-
-        this.slider.attr('max', max);
-        this.slider.attr('min', min);
-        this.slider.attr('step', step);
-
-        this.slider_val = def;
-        this.label.html(' ' + def);
-
-        this.slider.change(() => {
-            let t_val = this.slider_val;
-            this.label.html(' ' + t_val);
-            this.slider_val = t_val;
-            update_all_canvas_ele();
-        })
-    }
-
-    get slider_val() {
-        this.value = parseInt(this.slider.val());
-        return this.value;
-    }
-
-    set slider_val(val) {
-        this.value = val;
-        this.slider.val(val);
-    }
-}
-
+const BASIC_BLUR = 1;
+const GAUSSIAN_BLUR = 2;
+const GAUSSIAN_BLUR_DIR = 3;
+const DIFFERENTIAL_BLUR = 4;
 
 const MAIN_CANVAS = '#main-canvas'
 const SIDE_CANVAS = '#filter-canvas'
 
 // let operation_t = CONVOLUTION_FILTER;
-let filter_t;
+let filter_t = GAUSSIAN_BLUR_DIR;
 
 const canvas_ids = [MAIN_CANVAS, SIDE_CANVAS];
 let image_sources = {};
 let webgl_programs = {};
-let webgl_program_sources = {};
 
 /**
  * Updating image based on GUI
@@ -59,6 +29,7 @@ let k_size_slider;
 let intensity_slider;
 let steep_slider;
 let angle_slider;
+let m_size_slider;
 
 const getWebGL = (canvas_id = '') => {
     if (canvas_id.charAt(0) !== '#') {
@@ -77,59 +48,84 @@ const getWebGL = (canvas_id = '') => {
 $('document').ready(() => {
 
     image_sources[MAIN_CANVAS] = 'assets/mountain.jpg';
-    image_sources[SIDE_CANVAS] = 'assets/mountain.jpg';
+    image_sources[SIDE_CANVAS] = 'assets/back.jpg';
 
     executeOnLoad('main.vert', 'main.frag', MAIN_CANVAS);
     executeOnLoad('filter.vert', 'filter.frag', SIDE_CANVAS);
 
+    // const operation_select = $('#operation-select');
     const filter_select = $('#filter-select');
 
-    const input_box_x = $('#input_x');
-    const input_box_y = $('#input_y');
-    const input_group_xy = $('#input_group_xy');
-    const input_button_xy = $('#input_xy_btn');
+    // const operation_select_group = $('#operation-select-group');
+    const filter_select_group = $('#filter-select-group');
 
-    input_button_xy.click(() => {
-        replace_and_run(
-            webgl_program_sources[MAIN_CANVAS]['vert'],
-            webgl_program_sources[MAIN_CANVAS]['frag'],
-            ['FUNC_REP_XX = SOME_FUNCTION_FOR_X;', 'FUNC_REP_YY = SOME_FUNCTION_FOR_Y;'],
-            ['FUNC_REP_XX = ' + input_box_x.val() + ';', 'FUNC_REP_YY = ' + input_box_y.val() + ';'],
-            MAIN_CANVAS
-        );
-        replace_and_run(
-            webgl_program_sources[SIDE_CANVAS]['vert'],
-            webgl_program_sources[SIDE_CANVAS]['frag'],
-            ['FUNC_REP_XX = SOME_FUNCTION_FOR_X;', 'FUNC_REP_YY = SOME_FUNCTION_FOR_Y;'],
-            ['FUNC_REP_XX = ' + input_box_x.val() + ';', 'FUNC_REP_YY = ' + input_box_y.val() + ';'],
-            SIDE_CANVAS
-        );
-    })
+    /**
+     * Initialize the slider inputs **/
+    angle_slider = $('#angle_inp');
+    k_size_slider = $('#k_size_inp');
+    intensity_slider = $('#intensity_inp');
+    steep_slider = $('#steep_inp');
+    m_size_slider = $('#matrix_inp');
 
+    // Setting the defaults
+    slider_values[angle_slider.attr('name')] = 180;
+    slider_values[k_size_slider.attr('name')] = 19;
+    slider_values[intensity_slider.attr('name')] = 15;
+    slider_values[steep_slider.attr('name')] = 20;
+    slider_values[m_size_slider.attr('name')] = 20;
 
+    k_size_slider.attr('max', UNIFORM_MAX);
 
-    angle_slider = new slider_controls('angle',
-        45,0, 90, 5);
-    steep_slider = new slider_controls('steep',
-        11, 1, 100, 2);
-    k_size_slider = new slider_controls('k_size',
-        99, 5, 250, 2);
-    intensity_slider = new slider_controls('intensity',
-        2, 1, 15, 1);
+    let slider_list_all = [k_size_slider, angle_slider, intensity_slider, steep_slider, m_size_slider];
+    for (let slider of slider_list_all) {
+        let a_name = slider.attr('name');
+        slider.val(slider_values[a_name]);
+        $('#' + a_name + '_label').html(` ${slider_values[a_name]}`);
+        slider.change(() => {
+            let a_name = slider.attr('name');
+            slider_values[a_name] = parseInt(slider.val());
+            $('#' + a_name + '_label').html(` ${slider_values[a_name]}`);
+            update_all_canvas_ele();
+        })
+        // $('#' + a_name + '_group').hide();
+        // filter_select_group.hide();
+    }
 
     filter_select.change(() => {
         let option = filter_select.find(':selected');
         filter_t = parseInt(option.val());
         update_all_canvas_ele();
-        if (filter_t === 6) {
-            input_group_xy.show(500);
-            console.log(input_box_x.val(), input_box_y.val())
-        } else {
-            input_group_xy.hide(500);
-        }
     });
-    input_group_xy.hide(500);
-    filter_t = parseInt(filter_select.find(':selected').val());
+
+    // operation_select.change(() => {
+    //     /*
+    //      * Updating the uniform value */
+    //     let option = operation_select.find(':selected');
+    //     operation_t = parseInt(option.val());
+    //     console.log('Selected op = ', operation_t);
+    //
+    //     /**
+    //      * Changing slider visibility and labels */
+    //     for (let slider of [k_size_slider, angle_slider, intensity_slider, steep_slider]) {
+    //         let a_name = slider.attr('name');
+    //         if (operation_t !== CONVOLUTION_FILTER) {
+    //             $('#' + a_name + '_group').hide(500);
+    //         } else {
+    //             $('#' + a_name + '_group').show(500);
+    //         }
+    //         if (operation_t === DITHERING_FILTER) {
+    //             $('#matrix_group').show(500);
+    //         } else {
+    //             $('#matrix_group').hide(500);
+    //         }
+    //     }
+    //     if (operation_t !== CONVOLUTION_FILTER) {
+    //         filter_select_group.hide(500);
+    //     } else {
+    //         filter_select_group.show(500);
+    //     }
+    //     update_all_canvas_ele();
+    // });
 });
 
 const update_all_canvas_ele = () => {
@@ -138,22 +134,15 @@ const update_all_canvas_ele = () => {
     }
 }
 
-const executeOnLoad = (vertexSrc = '', fragSrc = '', canvas_id = '') => {
+const executeOnLoad = (vertexSrc = '', fragmentSrc = '', canvas_id = '', func) => {
     fetch(vertexSrc)
         .then((r1) => {
             r1.text().then((v_text) => {
-                // console.log('Vert shader program ' + vertexSrc + ' has been loaded');
-                fetch(fragSrc)
+                console.log('Vert shader program ' + vertexSrc + ' has been loaded');
+                fetch(fragmentSrc)
                     .then((r2) => {
                         r2.text().then((f_text) => {
-                            // console.log('Frag shader program ' + fragSrc + ' has been loaded');
-                            webgl_program_sources[canvas_id] = {
-                                'vert': v_text,
-                                'frag': f_text
-                            };
-                            // Need to replace this text
-                            // f_text = f_text.replace('xx = SOME_FUNCTION_FOR_X', 'xx = 0.0 - xy_c.y');
-                            // f_text = f_text.replace('yy = SOME_FUNCTION_FOR_Y', 'yy = 0.0 + xy_c.x');
+                            console.log('Frag shader program ' + fragmentSrc + ' has been loaded');
                             return createProgram(canvas_id, v_text, f_text);
                         });
                     });
@@ -161,38 +150,13 @@ const executeOnLoad = (vertexSrc = '', fragSrc = '', canvas_id = '') => {
         });
 }
 
-const replace_and_run = (v_text, f_text, orig_strings, new_strings, canvas_id) => {
-    for(let i = 0; i < orig_strings.length; i++) {
-        f_text = f_text.replace(orig_strings[i], new_strings[i]);
-    }
-    createProgram(canvas_id, v_text, f_text);
-}
-
 const createProgram = (canvas_id = '', vertexShaderSource = '', fragmentShaderSource = '') => {
 
     const webgl = getWebGL(canvas_id);
 
-    const input_error_box = $('#input_error_box');
-
-    input_error_box.hide();
-
     // setup the GLSL programs
     let program = webglUtils.createProgramFromSources(webgl,
-        [vertexShaderSource, fragmentShaderSource], null, null, (error_text) => {
-            console.log('Custom callback function');
-            let split_logs = error_text.split('\n');
-            let e_text = '';
-            for (const split_log of split_logs) {
-                if (split_log.indexOf('ERROR') > 0) {
-                    e_text = split_log + '\n';
-                }
-            }
-            input_error_box.show();
-            input_error_box.html(e_text);
-            console.log(e_text);
-        });
-
-    console.log('Loaded program = ', program);
+        [vertexShaderSource, fragmentShaderSource]);
     webgl.useProgram(program);          // Tell it to use our program (pair of shaders)
 
     webgl_programs[canvas_id] = program;
@@ -204,7 +168,9 @@ const createProgram = (canvas_id = '', vertexShaderSource = '', fragmentShaderSo
     image.onload = () => {
         render_img(canvas_id, image, program);
     };
+
     image_update(canvas_id);
+
 }
 
 function image_update(canvas_id) {
@@ -215,28 +181,112 @@ function image_update(canvas_id) {
 
     /**
      * Update the convolution filter properties */
-    let k_size = k_size_slider.value;
-    let sel_angle = angle_slider.value;
-    let intensity = intensity_slider.value;
-    let steepness = steep_slider.value;
+    let k_size = slider_values[k_size_slider.attr('name')];
+    let sel_angle = slider_values[angle_slider.attr('name')];
+    let intensity = slider_values[intensity_slider.attr('name')];
+    let steepness = slider_values[steep_slider.attr('name')];
 
-    const function_sel_loc = webgl.getUniformLocation(program, 'function_sel');
-    const kernel_size_loc = webgl.getUniformLocation(program, 'u_kernel_size');
-    const intensity_loc = webgl.getUniformLocation(program, 'intensity');
-    const angle_loc = webgl.getUniformLocation(program, 'angle');
-    const steep_loc = webgl.getUniformLocation(program, 'steepness');
+    intensity = (intensity*500 + 0.0001)/(1000);
+    if (intensity > 100000) {
+        intensity = 2.0;
+    }
+    steepness = 4.2/(steepness + 0.0001);
+    console.log('I = ', intensity)
 
-    webgl.uniform1i(function_sel_loc, filter_t);
-    webgl.uniform1i(kernel_size_loc, k_size);
+    let array_size = k_size * k_size;
+    let kernel_data = [];
 
-    webgl.uniform1f(intensity_loc, intensity);
-    webgl.uniform1f(angle_loc, sel_angle);
-    webgl.uniform1f(steep_loc, steepness);
+    if (filter_t === BASIC_BLUR) {
+        for (let i = 0; i < k_size; i++) {
+            for (let j = 0; j < k_size; j++) {
+                kernel_data.push(1 / array_size);
+            }
+        }
+    } else {
+        let radian_angle = sel_angle * Math.PI / 180;
+        for (let i = 0; i < k_size; i++) {
+            for (let j = 0; j < k_size; j++) {
+                let x = i + 0.5 - k_size / 2.0;
+                let y = j + 0.5 - k_size / 2.0;
+                let out = 1.0;
+                if (filter_t === GAUSSIAN_BLUR) {
+                    let f_xy = (x * x + y * y) / (k_size * steepness);
+                    out = Math.exp(-f_xy);
+                } else if (filter_t === GAUSSIAN_BLUR_DIR) {
+                    let f_xy = Math.cos(radian_angle) * x + Math.sin(radian_angle) * y;
+                    out = Math.exp(-(f_xy * f_xy) / (k_size * steepness));
+                } else if (filter_t === DIFFERENTIAL_BLUR) {
+                    let f_xy = Math.cos(radian_angle) * x + Math.sin(radian_angle) * y;
+                    out = (f_xy*6*steepness + k_size) / (k_size);
+                }
+                kernel_data.push(out);
+            }
+        }
+    }
+
+    /* Find out the sum of kernel array */
+    // let kernel_sum = 0.0;
+    // for (let i = 0; i < k_size; i++) {
+    //     for (let j = 0; j < k_size; j++) {
+    //         kernel_sum += kernel_data[i * k_size + j];
+    //     }
+    // }
+    //
+    // let max_value = -100000000;
+    // let min_value =  100000000;
+    // /* Normalize this array, and also find max value for later use */
+    // for (let i = 0; i < k_size; i++) {
+    //     for (let j = 0; j < k_size; j++) {
+    //         let index = i * k_size + j;
+    //         kernel_data[index] = kernel_data[index] / kernel_sum;
+    //         /* Find out the max and min values for normalization */
+    //         if (max_value < kernel_data[index]) max_value = kernel_data[index];
+    //         if (min_value > kernel_data[index]) min_value = kernel_data[index];
+    //     }
+    // }
 
     if (canvas_id === MAIN_CANVAS) {
+        const kernel_size_loc = webgl.getUniformLocation(program, 'u_kernel_size');
+        const intensity_loc = webgl.getUniformLocation(program, 'intensity');
+
+        webgl.uniform1i(kernel_size_loc, k_size);
+        webgl.uniform1f(intensity_loc, intensity);
     } else if (canvas_id === SIDE_CANVAS) {
+        const matrix_size_loc = webgl.getUniformLocation(program, 'matrix_size');
+        // for (let i = 0; i < k_size; i++) {
+        //     for (let j = 0; j < k_size; j++) {
+        //         let index = i * k_size + j;
+        //         kernel_data[index] = (kernel_data[index] - min_value) / (max_value - min_value);
+        //     }
+        // }
+        //
+        // let str = '';
+        // for (let i = 0; i < k_size; i++) {
+        //     for (let j = 0; j < k_size; j++) {
+        //         let index = i * k_size + j;
+        //         str += kernel_data[index].toFixed(2) + '  ';
+        //     }
+        //     str += '\n';
+        // }
+        // console.log(str);
+        // webgl.uniform1fv(matrix_data_loc, kernel_data);
+
+        webgl.uniform1i(matrix_size_loc, k_size);
     }
     webgl.drawArrays(webgl.TRIANGLES, 0, 6);
+}
+
+const make_matrix = (input = [[0, 2], [3, 1]]) => {
+    let outMat = [];
+    let side = input.length;
+    for(let i=0; i<side*2; i++) {
+        let temp = [];
+        for(let j=0; j<side*2; j++) {
+            temp.push(input[i%side][j%side]*4 + input[i>>1][j>>1]);
+        }
+        outMat.push(temp);
+    }
+    return outMat;
 }
 
 const create_texture = (canvas_id) => {
@@ -267,11 +317,12 @@ const render_img = (canvas_id='', image, program) => {
     const imageLocation = webgl.getUniformLocation(program, "u_image");
     const resolutionLocation = webgl.getUniformLocation(program, "u_resolution");
 
-    /*     Create a vertex array object (attribute state),
-     *     and make it the one we're currently working with  */
-
+    /**
+     *     Create a vertex array object (attribute state),
+     *     and make it the one we're currently working with */
     let vertex_arr_obj = webgl.createVertexArray();
     webgl.bindVertexArray(vertex_arr_obj);
+
 
     /**
      *  Passing the position information to the vertex shader */

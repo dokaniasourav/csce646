@@ -28,12 +28,7 @@
     margin: 3px 0;
 }
 
-#input_xy_btn {
-    margin-left: 10px;
-    margin-right: 10px;
-}
-
 .controls-container{
-    min-width: 250px;
+    min-width: 300px;
     max-width: 900px;
 }

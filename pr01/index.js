@@ -107,6 +107,7 @@ $('document').ready(() => {
     angle_slider.change(() => {
         sel_angle = angle_slider.val();
         image_update();
+        console.log('HELLO WORLD');
     });
 
     filter_select.change(() => {

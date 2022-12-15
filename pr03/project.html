@@ -14,18 +14,17 @@
             <div class='navbar-light bg-success navbar'>
                 <a class="navbar-brand text-white" href="#"> Sourav Dokania </a>
                 <h4 style="color: white">Project 3 (CSCE646)</h4>
-                <h5 style="color: white"> Line Integral Convolution using Vector Fields </h5>
             </div>
             <div class="row justify-content-center">
                 <div class="col canvas-container">
-                    <canvas width="500px" height="400px" id="main-canvas">
-                        Your browser does not support Canvas Elements - 1
+                    <canvas width="600px" height="400px" id="main-canvas">
+                        Your browser does not support Canvas Elements
                     </canvas>
                     <br>
                 </div>
                 <div class="col canvas-container">
-                    <canvas width="500px" height="400px" id="filter-canvas">
-                        Your browser does not support Canvas Elements - 2
+                    <canvas width="600px" height="400px" id="filter-canvas">
+                        Your browser does not support Canvas Elements
                     </canvas>
                     <br>
                 </div>
@@ -33,36 +32,28 @@
                     <div class="filter-controls">
                         <div class="row">
                             <div class="col">
+<!--                                <div class="form-floating" id="operation-select-group">-->
+<!--                                    <select class="form-select" aria-label="Filter Selection" id="operation-select">-->
+<!--                                        <option value="0">None</option>-->
+<!--                                        <option value="1">Convolution Filters</option>-->
+<!--                                        <option value="2">Ordered Dithering</option>-->
+<!--                                    </select>-->
+<!--                                    <label for="operation-select">Select filter operation</label>-->
+<!--                                </div>-->
                                 <div class="form-floating" id="filter-select-group">
                                     <select class="form-select" aria-label="Filter Selection" id="filter-select">
-                                        <option value="1">F(x, y) = (1, 1)</option>
-                                        <option value="2">F(x, y) = (x, y)</option>
-                                        <option value="3">F(x, y) = (-x, -y)</option>
-                                        <option value="4">F(x, y) = (-y, x)</option>
-                                        <option value="5">F(x, y) = (y, -x)</option>
-                                        <option value="6">Custom Function</option>
+<!--                                        <option value="1">Basic Blur</option>-->
+                                        <option value="2">Gaussian Blur</option>
+                                        <option value="3">Gaussian Blur - Directional</option>
+                                        <option value="4">Differential Blur - Directional</option>
                                     </select>
-                                    <label for="filter-select">Select a convolution filter</label>
-                                </div>
-                                <div class="row" id="input_group_xy">
-                                    <div class="input-group mb-3 col-xl-6 col-12">
-                                        <label for="input_x" class="input-group-text">FX = </label>
-                                        <input type="text" class="form-control" id="input_x" placeholder="Fx(XX, YY)">
-                                    </div>
-                                    <div class="input-group mb-3 col-xl-6 col-12">
-                                        <label for="input_y" class="input-group-text">FY = </label>
-                                        <input type="text" class="form-control" id="input_y" placeholder="Fy(XX, YY)">
-                                    </div>
-                                    <button class="btn input-group mb-3 col-xl-12 col-12 btn-primary" id="input_xy_btn"> Run </button>
-                                    <div class="alert alert-danger" role="alert" id="input_error_box">
-                                        This is a danger alert—check it out!
-                                    </div>
+                                    <label for="filter-select">Type of filter</label>
                                 </div>
                                 <div class="row">
                                     <div class="input-group mb-3 col" id="k_size_group">
                                         <label for="k_size_inp" class="form-label">Kernel Size:
                                             <span id="k_size_label"></span></label>
-                                        <input type="range" class="form-range" id="k_size_inp" min="2" max="999" step="2" name="k_size">
+                                        <input type="range" class="form-range" id="k_size_inp" min="5" max="25" step="2" name="k_size">
                                     </div>
                                     <div class="input-group mb-3 col" id="intensity_group">
                                         <label for="intensity_inp" class="form-label">Intensity:
@@ -80,6 +71,12 @@
                                         <label for="steep_inp" class="form-label">Steep:
                                             <span id="steep_label"></span></label>
                                         <input type="range" class="form-range" id="steep_inp" min="1" max="20" step="1" name="steep">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="input-group mb-3 col" id="matrix_group">
+                                        <label for="matrix_inp" class="form-label">Matrix Size: <span id="matrix_label"></span></label>
+                                        <input type="range" class="form-range" id="matrix_inp" min="1" max="25" step="1" name="matrix">
                                     </div>
                                 </div>
                             </div>
