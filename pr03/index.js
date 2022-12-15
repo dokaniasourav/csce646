@@ -91,6 +91,9 @@ $('document').ready(() => {
     const input_group_xy = $('#input_group_xy');
     const input_button_xy = $('#input_xy_btn');
 
+    input_box_x.val('-0.2 + sin(y)*sin(tan(cos(x))+tan(cos(y)))');
+    input_box_y.val('tan(y)*exp(((y-0.2)/(x + 0.2))*0.01) + sin(x)*sin(tan(cos(x))+tan(cos(y)))')
+
     input_button_xy.click(() => {
         replace_and_run(
             ['FUNC_REP_XX = SOME_FUNCTION_FOR_X;', 'FUNC_REP_YY = SOME_FUNCTION_FOR_Y;'],
@@ -155,11 +158,11 @@ $('document').ready(() => {
 
     const interval = setInterval(() => {
         regular_update(SIDE_CANVAS);
-    }, 100);
+    }, 10);
 
 });
 
-let steepness = 0.1;
+let steepness = 100000;
 
 const regular_update = (canvas_id) => {
     let webgl = getWebGL(canvas_id);
@@ -168,8 +171,8 @@ const regular_update = (canvas_id) => {
     webgl.uniform1f(steep_loc, steepness);
     webgl.drawArrays(webgl.TRIANGLES, 0, 6);
 
-    steepness += 0.1;
-    if (steepness > 10000.0) {
+    steepness -= 0.05;
+    if (steepness < 0) {
         steepness = 0.0;
     }
 }
