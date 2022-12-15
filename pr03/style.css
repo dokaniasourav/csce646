@@ -23,12 +23,17 @@
     height: 0.5vh;
 }
 
-#main-canvas {
+canvas {
     border: 1px solid gray;
     margin: 3px 0;
 }
 
+#input_xy_btn {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
 .controls-container{
-    min-width: 300px;
+    min-width: 250px;
     max-width: 900px;
 }
