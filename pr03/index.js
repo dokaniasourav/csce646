@@ -49,6 +49,7 @@ let filter_t;
 const canvas_ids = [MAIN_CANVAS, SIDE_CANVAS];
 let image_sources = {};
 let webgl_programs = {};
+let webgl_elements = {};
 let webgl_program_sources = {};
 
 /**
@@ -65,13 +66,18 @@ const getWebGL = (canvas_id = '') => {
         console.log('Invalid canvas ID provided');
         return;
     }
-    let canvas = document.querySelector(canvas_id);
-    let webgl = canvas.getContext("webgl2");
-    if (!webgl) {
-        window.alert('Webgl is not supported on this system');
-        return null;
+    if (canvas_id in webgl_elements) {
+        return webgl_elements[canvas_id];
+    } else {
+        let canvas = document.querySelector(canvas_id);
+        let webgl = canvas.getContext("webgl2");
+        if (!webgl) {
+            window.alert('Webgl is not supported on this system');
+            return null;
+        }
+        webgl_elements[canvas_id] = webgl;
+        return webgl;
     }
-    return webgl;
 }
 
 $('document').ready(() => {
@@ -158,11 +164,18 @@ $('document').ready(() => {
 
     const interval = setInterval(() => {
         regular_update(SIDE_CANVAS);
-    }, 10);
+    }, 1);
+
+    const interval2 = setInterval(() => {
+        let fps2 = fps;
+        fps = 0;
+        console.log(fps2);
+    }, 1000);
 
 });
 
 let steepness = 100000;
+let fps = 0;
 
 const regular_update = (canvas_id) => {
     let webgl = getWebGL(canvas_id);
@@ -175,6 +188,7 @@ const regular_update = (canvas_id) => {
     if (steepness < 0) {
         steepness = 0.0;
     }
+    fps += 1;
 }
 
 const update_all_canvas_ele = () => {
@@ -186,7 +200,7 @@ const update_all_canvas_ele = () => {
 let download_img = (canvas_id) => {
     let link = document.createElement('a');
     link.download = image_sources[canvas_id];
-    link.href = document.getElementById(canvas_id+'_url').toDataURL()
+    link.href = document.getElementById(canvas_id).toDataURL()
     link.click();
 }
 
