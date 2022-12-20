@@ -90,7 +90,7 @@ $('document').ready(() => {
 
     const filter_select = $('#filter-select');
     const image_select = $('#image-select');
-    const image_select_grp = $('#image-select-group');
+    // const image_select_grp = $('#image-select-group');
 
     const input_box_x = $('#input_x');
     const input_box_y = $('#input_y');
@@ -197,7 +197,7 @@ const update_all_canvas_ele = () => {
     }
 }
 
-let download_img = (canvas_id) => {
+const download_img = (canvas_id) => {
     let link = document.createElement('a');
     link.download = image_sources[canvas_id];
     link.href = document.getElementById(canvas_id).toDataURL()
